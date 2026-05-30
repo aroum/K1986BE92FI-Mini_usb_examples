@@ -1,6 +1,6 @@
 # Примеры USB для K1986BE92FI-Mini
 
-Три USB-прошивки для мк К1986ВЕ92F1I ( MDR1211F1I) на **FreeRTOS** с общей конфигурацией платы и единым скриптом сборки.
+Четыре USB-прошивки для мк К1986ВЕ92F1I (MDR1211F1I) на **FreeRTOS** с общей конфигурацией платы и единым скриптом сборки.
 
 ## Подготовка
 
@@ -26,6 +26,7 @@
 
 - `HSE_Value` — частота внешнего кварца (по умолчанию 8 МГц)
 - `BOARD_BUTTON`, `BOARD_LED` — пины в формате `PB6` (порт B, вывод 6)
+- `BOARD_DAC` — вывод ЦАП (по умолчанию `PE0` = DAC2_OUT)
 
 Макросы `MDR_PORTB`, `PORT_Pin_6` и т.п. задаются в [`board_pins.h`](board_pins.h).
 
@@ -38,6 +39,7 @@ chmod +x build_all.sh
 ./build_all.sh vcom          # собрать vcom
 ./build_all.sh keyboard -c   # чистая сборка keyboard
 ./build_all.sh midi -sf      # размер + прошивка midi
+./build_all.sh synt -sf      # размер + прошивка synt
 ```
 
 Из каталога проекта можно вызвать обёртку (делегирует в общий скрипт):
@@ -50,11 +52,12 @@ chmod +x build_all.sh
 
 ## Примеры
 
-| Пример     | Описание                       |
-| ---------- | ------------------------------ |
-| `vcom`     | USB CDC echo                   |
-| `keyboard` | USR Кнопка → HID key `F`, LED  |
-| `midi`     | USR Кнопка → MIDI нота A4, LED |
+| Пример     | Описание                                 |
+| ---------- | ---------------------------------------- |
+| `vcom`     | USB CDC echo                             |
+| `keyboard` | USR Кнопка → HID key `F`, LED            |
+| `midi`     | USR Кнопка → MIDI нота A4, LED           |
+| `synt`     | USB MIDI Note On/Off → синус на ЦАП, LED |
 
 Общий код: `common/` (SPL/CMSIS, startup, тактирование, GPIO, USB), `freertos/` (ядро FreeRTOS).
 

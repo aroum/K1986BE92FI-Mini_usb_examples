@@ -20,4 +20,7 @@
 #define BOARD_BUTTON PB6
 #define BOARD_LED    PB7
 
+/* DAC output (analog): PE0 = DAC2_OUT on K1986BE92FI-Mini */
+#define BOARD_DAC PE0
+
 #endif /* USB_EXAMPLES_CONFIG_H */

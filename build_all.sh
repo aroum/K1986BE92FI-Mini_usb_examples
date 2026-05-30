@@ -20,6 +20,7 @@ show_help() {
     echo "  vcom      USB CDC echo"
     echo "  keyboard  USB HID keyboard"
     echo "  midi      USB MIDI"
+    echo "  synt      USB MIDI -> DAC sine"
     echo ""
     echo "Options:"
     echo "  -c, --clean    Remove build directory and re-run CMake"
@@ -44,9 +45,13 @@ resolve_project() {
             PROJECT_DIR="${SCRIPT_DIR}/midi"
             TARGET_NAME="FREERTOS-Milandr-template"
             ;;
+        synt)
+            PROJECT_DIR="${SCRIPT_DIR}/synt"
+            TARGET_NAME="synt"
+            ;;
         *)
             echo -e "${RED}Unknown project: $1${NC}"
-            echo "Valid projects: vcom, keyboard, midi"
+            echo "Valid projects: vcom, keyboard, midi, synt"
             exit 1
             ;;
     esac
