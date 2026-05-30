@@ -40,6 +40,7 @@ chmod +x build_all.sh
 ./build_all.sh keyboard -c   # чистая сборка keyboard
 ./build_all.sh midi -sf      # размер + прошивка midi
 ./build_all.sh synt -sf      # размер + прошивка synt
+./build_all.sh combo -sf      # размер + прошивка synt
 ```
 
 Из каталога проекта можно вызвать обёртку (делегирует в общий скрипт):
@@ -52,12 +53,13 @@ chmod +x build_all.sh
 
 ## Примеры
 
-| Пример     | Описание                                 |
-| ---------- | ---------------------------------------- |
-| `vcom`     | USB CDC echo                             |
-| `keyboard` | USR Кнопка → HID key `F`, LED            |
-| `midi`     | USR Кнопка → MIDI нота A4, LED           |
-| `synt`     | USB MIDI Note On/Off → синус на ЦАП, LED |
+| Пример     | Описание                                           |
+| ---------- | -------------------------------------------------- |
+| `vcom`     | USB CDC echo                                       |
+| `keyboard` | USR Кнопка → HID key `F`, LED                      |
+| `midi`     | USR Кнопка → MIDI нота A4, LED                     |
+| `synt`     | USB MIDI Note On/Off → синус на ЦАП, LED           |
+| `combo`    | USR при включении: VCOM echo; иначе HID клавиатура |
 
 Общий код: `common/` (SPL/CMSIS, startup, тактирование, GPIO, USB), `freertos/` (ядро FreeRTOS).
 

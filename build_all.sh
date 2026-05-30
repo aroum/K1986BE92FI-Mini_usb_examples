@@ -20,6 +20,7 @@ show_help() {
     echo "  vcom      USB CDC echo"
     echo "  keyboard  USB HID keyboard"
     echo "  midi      USB MIDI"
+    echo "  combo     USR at boot: VCOM, else HID keyboard"
     echo "  synt      USB MIDI -> DAC sine"
     echo ""
     echo "Options:"
@@ -49,9 +50,13 @@ resolve_project() {
             PROJECT_DIR="${SCRIPT_DIR}/synt"
             TARGET_NAME="synt"
             ;;
+        combo)
+            PROJECT_DIR="${SCRIPT_DIR}/combo"
+            TARGET_NAME="combo_usb"
+            ;;
         *)
             echo -e "${RED}Unknown project: $1${NC}"
-            echo "Valid projects: vcom, keyboard, midi, synt"
+            echo "Valid projects: vcom, keyboard, midi, synt, combo"
             exit 1
             ;;
     esac

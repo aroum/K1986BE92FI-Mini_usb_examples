@@ -1,0 +1,342 @@
+/**
+ * @file    app_usb_hid.c
+ * @brief   USB HID Keyboard driver implementation using Milandr SPL.
+ */
+
+#include "app_usb_hid.h"
+
+/* Context and state management */
+static volatile USB_Result USB_HID_SendDataStatus = USB_SUCCESS;
+static uint8_t USB_HID_IdleRate = 0;
+static uint8_t USB_HID_Protocol = 1; /* 0 = Boot, 1 = Report */
+
+/* ---------------------- USB HID Descriptors ------------------------------- */
+
+/* Standard Device Descriptor */
+static const uint8_t Usb_HID_Device_Descriptor[18] =
+{
+    0x12,                  /* bLength */
+    0x01,                  /* bDescriptorType (Device) */
+    0x00, 0x02,            /* bcdUSB (2.0) */
+    0x00,                  /* bDeviceClass (Defined at interface level) */
+    0x00,                  /* bDeviceSubClass */
+    0x00,                  /* bDeviceProtocol */
+    64,                    /* bMaxPacketSize0 */
+    0x83, 0x04,            /* idVendor (Milandr 0x0483) */
+    0x11, 0x57,            /* idProduct (Custom HID keyboard 0x5711) */
+    0x00, 0x01,            /* bcdDevice (1.0) */
+    0x01,                  /* iManufacturer (String 1) */
+    0x02,                  /* iProduct (String 2) */
+    0x03,                  /* iSerialNumber (String 3) */
+    0x01                   /* bNumConfigurations */
+};
+
+/* Standard Configuration Descriptor (Configuration + Interface + HID + Endpoint) */
+static const uint8_t Usb_HID_Configuration_Descriptor[34] =
+{
+    /* Configuration Descriptor (9 bytes) */
+    0x09,                  /* bLength */
+    0x02,                  /* bDescriptorType (Configuration) */
+    34, 0x00,              /* wTotalLength (34 bytes) */
+    0x01,                  /* bNumInterfaces */
+    0x01,                  /* bConfigurationValue */
+    0x00,                  /* iConfiguration */
+    0xA0,                  /* bmAttributes (Bus Powered, Remote Wakeup) */
+    50,                    /* bMaxPower (100 mA) */
+
+    /* Interface Descriptor (9 bytes) */
+    0x09,                  /* bLength */
+    0x04,                  /* bDescriptorType (Interface) */
+    0x00,                  /* bInterfaceNumber */
+    0x00,                  /* bAlternateSetting */
+    0x01,                  /* bNumEndpoints */
+    0x03,                  /* bInterfaceClass (HID) */
+    0x01,                  /* bInterfaceSubClass (Boot) */
+    0x01,                  /* bInterfaceProtocol (Keyboard) */
+    0x00,                  /* iInterface */
+
+    /* HID Descriptor (9 bytes) */
+    0x09,                  /* bLength */
+    0x21,                  /* bDescriptorType (HID) */
+    0x11, 0x01,            /* bcdHID (1.11) */
+    0x00,                  /* bCountryCode */
+    0x01,                  /* bNumDescriptors */
+    0x22,                  /* bDescriptorType (Report) */
+    63, 0x00,              /* wDescriptorLength (63 bytes) */
+
+    /* Endpoint Descriptor (7 bytes) */
+    0x07,                  /* bLength */
+    0x05,                  /* bDescriptorType (Endpoint) */
+    0x81,                  /* bEndpointAddress (IN EP1) */
+    0x03,                  /* bmAttributes (Interrupt) */
+    0x08, 0x00,            /* wMaxPacketSize (8 bytes) */
+    10                     /* bInterval (10 ms) */
+};
+
+/* Standard HID Keyboard Report Descriptor (63 bytes) */
+static const uint8_t Usb_HID_Report_Descriptor[63] =
+{
+    0x05, 0x01,            /* USAGE_PAGE (Generic Desktop) */
+    0x09, 0x06,            /* USAGE (Keyboard) */
+    0xA1, 0x01,            /* COLLECTION (Application) */
+      0x05, 0x07,          /*   USAGE_PAGE (Keyboard) */
+        0x19, 0xE0,        /*   USAGE_MINIMUM (224 / Left Control) */
+        0x29, 0xE7,        /*   USAGE_MAXIMUM (231 / Right GUI) */
+        0x15, 0x00,        /*   LOGICAL_MINIMUM (0) */
+        0x25, 0x01,        /*   LOGICAL_MAXIMUM (1) */
+        0x75, 0x01,        /*   REPORT_SIZE (1) */
+        0x95, 0x08,        /*   REPORT_COUNT (8) */
+        0x81, 0x02,        /*   INPUT (Data,Var,Abs) - Modifier byte */
+        0x95, 0x01,        /*   REPORT_COUNT (1) */
+        0x75, 0x08,        /*   REPORT_SIZE (8) */
+        0x81, 0x03,        /*   INPUT (Constant) - Reserved byte */
+      0x95, 0x05,          /*   REPORT_COUNT (5) */
+      0x75, 0x01,          /*   REPORT_SIZE (1) */
+      0x05, 0x08,          /*   USAGE_PAGE (LEDs) */
+        0x19, 0x01,        /*   USAGE_MINIMUM (Num Lock) */
+        0x29, 0x05,        /*   USAGE_MAXIMUM (Kana) */
+        0x91, 0x02,        /*   OUTPUT (Data,Var,Abs) - LED report */
+        0x95, 0x01,        /*   REPORT_COUNT (1) */
+        0x75, 0x03,        /*   REPORT_SIZE (3) */
+        0x91, 0x03,        /*   OUTPUT (Constant) - LED padding */
+      0x95, 0x06,          /*   REPORT_COUNT (6) */
+      0x75, 0x08,          /*   REPORT_SIZE (8) */
+      0x15, 0x00,          /*   LOGICAL_MINIMUM (0) */
+      0x25, 0xFF,          /*   LOGICAL_MAXIMUM (255) */
+      0x05, 0x07,          /*   USAGE_PAGE (Keyboard) */
+        0x19, 0x00,        /*   USAGE_MINIMUM (0) */
+        0x29, 0xFF,        /*   USAGE_MAXIMUM (255) */
+        0x81, 0x00,        /*   INPUT (Data,Ary,Abs) - 6 keycodes */
+    0xC0                   /* END_COLLECTION */
+};
+
+/* String Descriptor 0 (Language ID) */
+static const uint8_t Usb_HID_String_LangID[4] =
+{
+    0x04,                  /* bLength */
+    0x03,                  /* bDescriptorType (String) */
+    0x09, 0x04             /* wLANGID (US English 0x0409) */
+};
+
+/* String Descriptor 1 (Manufacturer) - "Milandr" in UTF-16LE */
+static const uint8_t Usb_HID_String_Manuf[16] =
+{
+    16, 0x03,
+    'M', 0, 'i', 0, 'l', 0, 'a', 0, 'n', 0, 'd', 0, 'r', 0
+};
+
+/* String Descriptor 2 (Product) - "HID Keyboard" in UTF-16LE */
+static const uint8_t Usb_HID_String_Prod[26] =
+{
+    26, 0x03,
+    'H', 0, 'I', 0, 'D', 0, ' ', 0, 'K', 0, 'e', 0, 'y', 0, 'b', 0, 'o', 0, 'a', 0, 'r', 0, 'd', 0
+};
+
+/* String Descriptor 3 (Serial) - "12345678" in UTF-16LE */
+static const uint8_t Usb_HID_String_Serial[18] =
+{
+    18, 0x03,
+    '1', 0, '2', 0, '3', 0, '4', 0, '5', 0, '6', 0, '7', 0, '8', 0
+};
+
+/* ---------------------- Private Callbacks --------------------------------- */
+
+/**
+ * @brief  Callback triggered when host completes reading the keyboard report.
+ */
+static USB_Result USB_HID_OnDataSent(USB_EP_TypeDef EPx, uint8_t* Buffer, uint32_t Length)
+{
+    (void)EPx;
+    (void)Buffer;
+    (void)Length;
+
+    /* Release send status to allow next report transmission */
+    USB_HID_SendDataStatus = USB_SUCCESS;
+    return USB_SUCCESS;
+}
+
+/**
+ * @brief  Callback triggered during control transfer DATA stage for class requests.
+ */
+static USB_Result USB_HID_DoDataOut(USB_EP_TypeDef EPx, uint8_t* Buffer, uint32_t Length)
+{
+    (void)EPx;
+    (void)Buffer;
+    (void)Length;
+
+    /* Currently we only receive SET_REPORT reports (LED status) which we ACK */
+    return USB_SUCCESS;
+}
+
+/* ---------------------- Public API ---------------------------------------- */
+
+USB_Result USB_HID_Init(void)
+{
+    USB_HID_SendDataStatus = USB_SUCCESS;
+    USB_HID_IdleRate = 0;
+    USB_HID_Protocol = 1;
+    return USB_SUCCESS;
+}
+
+USB_Result USB_HID_Reset(void)
+{
+    USB_Result result;
+
+    /* Call the device framework reset to reset hardware registers */
+    result = USB_DeviceReset();
+
+    if (result == USB_SUCCESS)
+    {
+        /* Initialize Interrupt Endpoint 1 (IN) to send reports */
+        USB_EP_Init(USB_HID_EP_SEND, USB_SEPx_CTRL_EPEN_Enable | USB_SEPx_CTRL_EPDATASEQ_Data1, 0);
+
+        /* Reset context variables */
+        USB_HID_SendDataStatus = USB_SUCCESS;
+    }
+
+    return result;
+}
+
+USB_Result USB_HID_SendReport(const USB_HID_KeyboardReport_TypeDef* report)
+{
+    USB_Result result = USB_HID_SendDataStatus;
+
+    /* Try to initiate transaction only if endpoint is idle */
+    if (result == USB_SUCCESS)
+    {
+        USB_HID_SendDataStatus = USB_ERR_BUSY;
+        result = USB_EP_doDataIn(USB_HID_EP_SEND, (uint8_t*)report, sizeof(USB_HID_KeyboardReport_TypeDef), USB_HID_OnDataSent);
+    }
+
+    return result;
+}
+
+USB_Result USB_HID_GetDescriptor(uint16_t wVALUE, uint16_t wINDEX, uint16_t wLENGTH)
+{
+    const uint8_t* pDescr = 0;
+    uint32_t length = 0;
+    USB_Result result = USB_SUCCESS;
+    uint8_t descType = (uint8_t)(wVALUE >> 8);
+    uint8_t descIndex = (uint8_t)(wVALUE & 0xFF);
+
+    switch (descType)
+    {
+        case USB_DEVICE:
+            pDescr = Usb_HID_Device_Descriptor;
+            length = sizeof(Usb_HID_Device_Descriptor);
+            break;
+
+        case USB_CONFIGURATION:
+            pDescr = Usb_HID_Configuration_Descriptor;
+            length = sizeof(Usb_HID_Configuration_Descriptor);
+            break;
+
+        case USB_STRING:
+            switch (descIndex)
+            {
+                case 0:
+                    pDescr = Usb_HID_String_LangID;
+                    length = sizeof(Usb_HID_String_LangID);
+                    break;
+                case 1:
+                    pDescr = Usb_HID_String_Manuf;
+                    length = sizeof(Usb_HID_String_Manuf);
+                    break;
+                case 2:
+                    pDescr = Usb_HID_String_Prod;
+                    length = sizeof(Usb_HID_String_Prod);
+                    break;
+                case 3:
+                    pDescr = Usb_HID_String_Serial;
+                    length = sizeof(Usb_HID_String_Serial);
+                    break;
+                default:
+                    result = USB_ERROR;
+                    break;
+            }
+            break;
+
+        case USB_HID_DESCRIPTOR_HID:
+            /* HID descriptor is embedded inside configuration descriptor starting at byte 18 */
+            pDescr = &Usb_HID_Configuration_Descriptor[18];
+            length = 9;
+            break;
+
+        case USB_HID_DESCRIPTOR_REPORT:
+            pDescr = Usb_HID_Report_Descriptor;
+            length = sizeof(Usb_HID_Report_Descriptor);
+            break;
+
+        default:
+            result = USB_ERROR;
+            break;
+    }
+
+    if (result == USB_SUCCESS && pDescr != 0)
+    {
+        if (length > wLENGTH)
+        {
+            length = wLENGTH;
+        }
+        result = USB_EP_doDataIn(USB_EP0, (uint8_t*)pDescr, length, USB_DeviceDoStatusOutAck);
+    }
+
+    return result;
+}
+
+USB_Result USB_HID_ClassRequest(void)
+{
+    USB_Result result = USB_SUCCESS;
+    uint16_t wValue = USB_CurrentSetupPacket.wValue;
+    uint16_t wLength = USB_CurrentSetupPacket.wLength;
+    static uint8_t tempByte = 0;
+
+    switch (USB_CurrentSetupPacket.bRequest)
+    {
+        case USB_HID_SET_IDLE:
+            USB_HID_IdleRate = (uint8_t)(wValue >> 8);
+            result = USB_SUCCESS;
+            break;
+
+        case USB_HID_GET_IDLE:
+            tempByte = USB_HID_IdleRate;
+            result = USB_EP_doDataIn(USB_EP0, &tempByte, 1, USB_DeviceDoStatusOutAck);
+            break;
+
+        case USB_HID_SET_PROTOCOL:
+            USB_HID_Protocol = (uint8_t)wValue;
+            result = USB_SUCCESS;
+            break;
+
+        case USB_HID_GET_PROTOCOL:
+            tempByte = USB_HID_Protocol;
+            result = USB_EP_doDataIn(USB_EP0, &tempByte, 1, USB_DeviceDoStatusOutAck);
+            break;
+
+        case USB_HID_SET_REPORT:
+            /* Accept report host sends via data stage */
+            if (wLength > 0)
+            {
+                result = USB_EP_doDataOut(USB_EP0, &tempByte, wLength, USB_HID_DoDataOut);
+            }
+            else
+            {
+                result = USB_ERR_INV_REQ;
+            }
+            break;
+
+        default:
+            result = USB_ERROR;
+            break;
+    }
+
+    /* If no data stage is scheduled, trigger standard status stage */
+    if (result == USB_SUCCESS && wLength == 0)
+    {
+        result = (USB_CurrentSetupPacket.mRequestTypeData & 0x80) == USB_DEVICE_TO_HOST ?
+                 USB_EP_doDataOut(USB_EP0, 0, 0, 0) :
+                 USB_EP_doDataIn(USB_EP0, 0, 0, 0);
+    }
+
+    return result;
+}
