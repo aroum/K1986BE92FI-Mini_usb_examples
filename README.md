@@ -67,7 +67,7 @@ chmod +x build_all.sh
 | `keyboard`    | USR Кнопка → HID key `F`, LED                                 |
 | `midi`        | USR Кнопка → MIDI нота A4, LED                                |
 | `synt`        | USB MIDI Note On/Off → синус на ЦАП, LED                      |
-| `combo`       | USR при включении: VCOM EEPROM; иначе HID клавиатура из ПЗУ    |
+| `combo`       | USR при включении: VCOM EEPROM (можно задать букву которая будет печататься в режиме клавиатуры a-z); иначе HID клавиатура из ПЗУ    |
 
 Общий код: `common/` (SPL/CMSIS, startup, тактирование, GPIO, USB), `freertos/` (ядро FreeRTOS).
 
