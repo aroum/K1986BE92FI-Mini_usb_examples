@@ -1,6 +1,12 @@
 # Примеры USB для K1986BE92FI-Mini
 
-Четыре USB-прошивки для мк К1986ВЕ92F1I (MDR1211F1I) на **FreeRTOS** с общей конфигурацией платы и единым скриптом сборки.
+1986ВЕ9х семейство:
+К1986ВЕ92FI  ( MDR1211FI )
+К1986ВЕ92F1I ( MDR1211F1I )
+К1986ВЕ94GI  ( MDR1209GI )
+К1986ВЕ92QI  ( MDR32F9Q2I ) снятый с производтсва
+
+Шесть USB-прошивок для мк К1986ВЕ92F1I (MDR1211F1I) на **FreeRTOS** с общей конфигурацией платы и единым скриптом сборки.
 
 ## Подготовка
 
@@ -18,7 +24,7 @@
 
 ![schematic](schematic.png)
 
-Если планируется подключение кабелем USB-C — USB-C, проверьте номиналы R21 и R22. В схеме/на плате ошибочно стоят 510 кОм, их необходимо заменить на 5.1 кОм (SMD 0603). Без этой замены контроллер порта не перейдет в активный режим.
+Если планируется подключение кабелем USB-C — USB-C, проверьте номиналы R21 and R22. В схеме/на плате ошибочно стоят 510 кОм, их необходимо заменить на 5.1 кОм (SMD 0603). Без этой замены контроллер порта не перейдет в активный режим.
 
 ## Конфигурация платы
 
@@ -36,11 +42,12 @@
 
 ```bash
 chmod +x build_all.sh
-./build_all.sh vcom          # собрать vcom
-./build_all.sh keyboard -c   # чистая сборка keyboard
-./build_all.sh midi -sf      # размер + прошивка midi
-./build_all.sh synt -sf      # размер + прошивка synt
-./build_all.sh combo -sf      # размер + прошивка synt
+./build_all.sh vcom            # собрать vcom
+./build_all.sh vcom_eeprom -sf # размер + прошивка vcom_eeprom
+./build_all.sh keyboard -c     # чистая сборка keyboard
+./build_all.sh midi -sf        # размер + прошивка midi
+./build_all.sh synt -sf        # размер + прошивка synt
+./build_all.sh combo -sf       # размер + прошивка combo
 ```
 
 Из каталога проекта можно вызвать обёртку (делегирует в общий скрипт):
@@ -53,17 +60,18 @@ chmod +x build_all.sh
 
 ## Примеры
 
-| Пример     | Описание                                           |
-| ---------- | -------------------------------------------------- |
-| `vcom`     | USB CDC echo                                       |
-| `keyboard` | USR Кнопка → HID key `F`, LED                      |
-| `midi`     | USR Кнопка → MIDI нота A4, LED                     |
-| `synt`     | USB MIDI Note On/Off → синус на ЦАП, LED           |
-| `combo`    | USR при включении: VCOM echo; иначе HID клавиатура |
+| Пример        | Описание                                                      |
+| ------------- | ------------------------------------------------------------- |
+| `vcom`        | USB CDC echo                                                  |
+| `vcom_eeprom` | USB CDC echo + Запись/Чтение EEPROM в фоновой задаче FreeRTOS |
+| `keyboard`    | USR Кнопка → HID key `F`, LED                                 |
+| `midi`        | USR Кнопка → MIDI нота A4, LED                                |
+| `synt`        | USB MIDI Note On/Off → синус на ЦАП, LED                      |
+| `combo`       | USR при включении: VCOM EEPROM; иначе HID клавиатура из ПЗУ    |
 
 Общий код: `common/` (SPL/CMSIS, startup, тактирование, GPIO, USB), `freertos/` (ядро FreeRTOS).
 
-В каждом примере в `src/sdk/` остаются только настройки SPL под конкретный USB-класс: `MDR32FxQI_config.h` и `MDR32FxQI_usb_handlers.h`.
+В каждом примере в `src/sdk/` остаются только настройки SPL под конкретный USB-класс: `MDR32FxQI_config.h` and `MDR32FxQI_usb_handlers.h`.
 
 ## Другие проекты
 
