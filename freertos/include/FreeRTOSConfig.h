@@ -55,7 +55,7 @@ extern uint32_t SystemCoreClock;
  *       из библиотеки драйверов SPL MDR32FxQI.
  */
 #define configCPU_CLOCK_HZ                    ( ( uint32_t ) 80000000 ) // MCU speed 8 MHz
-
+#define INCLUDE_xTaskGetSchedulerState 1
 #define configTICK_RATE_HZ                    ((TickType_t)1000)
 #define configTOTAL_HEAP_SIZE                 ((size_t)(10 * 1024))
 #define configMINIMAL_STACK_SIZE              ((unsigned short)130)

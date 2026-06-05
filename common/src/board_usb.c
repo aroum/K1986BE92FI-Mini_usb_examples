@@ -23,7 +23,7 @@ void Board_USB_Init(bool freertos_irq_priority)
 
 #ifdef USB_INT_HANDLE_REQUIRED
   if (freertos_irq_priority) {
-    NVIC_SetPriority(USB_IRQn, 6);
+    NVIC_SetPriority(USB_IRQn, 5);
   }
   NVIC_EnableIRQ(USB_IRQn);
 #endif

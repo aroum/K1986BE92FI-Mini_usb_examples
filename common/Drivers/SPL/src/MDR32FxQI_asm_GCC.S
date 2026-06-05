@@ -1,4 +1,8 @@
 /**
+//
+// original: https://github.com/arty1223/MDR1211_lcd1602_i2c
+// modified by aroum (https://github.com/aroum) 
+//
         !!!!!!!!!THIS FILE WAS MODIFIED BY AI USE CAUTIOUSLY!!!!!!!!!
   ******************************************************************************
   * @file    MDR32FxQI_asm.S
@@ -23,7 +27,8 @@
 .syntax unified
 .thumb
 
-.section .text
+.section EXECUTABLE_MEMORY_SECTION, "ax"
+.align 2
 
 /**
   * @brief   Updates data cache.

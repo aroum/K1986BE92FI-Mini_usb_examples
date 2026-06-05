@@ -46,7 +46,6 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "config.h"
 #include <stdint.h>
 // #include <RTE_Components.h> // Keil uVision specific inclusion
 
@@ -133,11 +132,9 @@ extern "C" {
 // <o> HSI clock value [Hz]
 // <i> Default: 8000000 (8MHz)
 #define HSI_Value ((uint32_t)8000000)
-// <o> HSE clock value [Hz] — see usb_examples/config.h
+// <o> HSE clock value [Hz]
 // <i> Default: 8000000 (8MHz)
-#ifndef HSE_Value
 #define HSE_Value ((uint32_t)8000000)
-#endif
 // <o> HSE2 clock value [Hz] for MDR32F1QI, K1986VE1xI
 // <i> Default: 25000000 (25MHz)
 #define HSE2_Value ((uint32_t)25000000)
