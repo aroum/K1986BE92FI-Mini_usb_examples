@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 include("${CMAKE_CURRENT_LIST_DIR}/../../common/cmake/gcc-milandr.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/usb_examples_common.cmake")
-set(CMAKE_PROJECT_NAME vcom_echo)
+set(CMAKE_PROJECT_NAME vcom_eeprom)
 project(${CMAKE_PROJECT_NAME} ASM C CXX)
 
 set(MILANDR_SDK_USB_CDC ON)
@@ -22,7 +22,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
 	"app/src/app.c"
 )
 
-target_link_options(vcom_echo PRIVATE 
+target_link_options(${CMAKE_PROJECT_NAME} PRIVATE 
     "--specs=nosys.specs" 
     "--specs=nano.specs"
 )

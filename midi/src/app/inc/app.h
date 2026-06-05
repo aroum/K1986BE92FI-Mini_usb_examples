@@ -5,7 +5,7 @@
 #include "MDR32FxQI_rst_clk.h"
 #include "MDR32FxQI_bkp.h"
 #include "MDR32FxQI_eeprom.h"
-#include "MDR32F1QI_IT.h"
+#include "K1986VE9xI_IT.h"
 
 // Сишные библиотеки
 // #include <stdio.h> // раскомментировать syscalls.c в common/Drivers/CMakeLists.txt

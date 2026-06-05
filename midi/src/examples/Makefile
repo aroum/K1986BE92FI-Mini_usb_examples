@@ -12,7 +12,7 @@ EXAMPLE		= rtos_blink
 include $(TOP_DIR)examples/${EXAMPLE}/Makefile.inc
 
 BINARY		=	main
-LDSCRIPT	?= $(TOP_DIR)/dep/gcc/MDR32F9Qx.ld
+LDSCRIPT	?= $(TOP_DIR)/dep/gcc/MDR32F9Q2I.ld
 
 INC 		=	-I$(TOP_DIR)lib/Config \
 				-I$(TOP_DIR)lib/CMSIS/MDR32FxQI/CoreSupport/CM3 \
@@ -28,7 +28,7 @@ INC 		=	-I$(TOP_DIR)lib/Config \
 				-I$(TOP_DIR)examples/${EXAMPLE}
 
 SRCFILES	=	$(TOP_DIR)examples/${EXAMPLE}/main.c \
-				$(TOP_DIR)dep/gcc/startup_MDR32F9Qx.S \
+				$(TOP_DIR)dep/gcc/startup_MDR32F9Q2I.S \
 				$(TOP_DIR)lib/CMSIS/MDR32FxQI/DeviceSupport/MDR32F9Q2I/startup/system_MDR32F9Q2I.c \
 				$(TOP_DIR)lib/Debug/rtt/SEGGER_RTT.c \
 				$(TOP_DIR)lib/Debug/rtt/SEGGER_RTT_printf.c

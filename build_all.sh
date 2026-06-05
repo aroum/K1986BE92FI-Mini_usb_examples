@@ -11,22 +11,25 @@ NC='\033[0m'
 CLEAN=false
 SIZE=false
 FLASH=false
+DEBUG=false 
 PROJECT=""
 
 show_help() {
     echo "Usage: ./build_all.sh <project> [options]"
     echo ""
     echo "Projects:"
-    echo "  vcom      USB CDC echo"
-    echo "  keyboard  USB HID keyboard"
-    echo "  midi      USB MIDI"
-    echo "  combo     USR at boot: VCOM, else HID keyboard"
-    echo "  synt      USB MIDI -> DAC sine"
+    echo "  vcom         USB CDC echo"
+    echo "  vcom_eeprom  USB CDC echo + EEPROM"
+    echo "  keyboard     USB HID keyboard"
+    echo "  midi         USB MIDI"
+    echo "  combo        USR at boot: VCOM, else HID keyboard"
+    echo "  synt         USB MIDI -> DAC sine"
     echo ""
     echo "Options:"
     echo "  -c, --clean    Remove build directory and re-run CMake"
     echo "  -s, --size     Show memory usage report"
     echo "  -f, --flash    Flash via OpenOCD (J-Link)"
+    echo "  -d, --debug    Start OpenOCD GDB server" 
     echo "  -h, --help     Show this help"
     echo ""
     echo "Example: ./build_all.sh vcom -csf"
@@ -37,6 +40,10 @@ resolve_project() {
         vcom)
             PROJECT_DIR="${SCRIPT_DIR}/vcom"
             TARGET_NAME="vcom_echo"
+            ;;
+        vcom_eeprom)
+            PROJECT_DIR="${SCRIPT_DIR}/vcom_eeprom"
+            TARGET_NAME="vcom_eeprom"
             ;;
         keyboard)
             PROJECT_DIR="${SCRIPT_DIR}/keyboard"
@@ -56,7 +63,7 @@ resolve_project() {
             ;;
         *)
             echo -e "${RED}Unknown project: $1${NC}"
-            echo "Valid projects: vcom, keyboard, midi, synt, combo"
+            echo "Valid projects: vcom, vcom_eeprom, keyboard, midi, synt, combo"
             exit 1
             ;;
     esac
@@ -71,6 +78,7 @@ parse_short_opts() {
             c) CLEAN=true ;;
             s) SIZE=true ;;
             f) FLASH=true ;;
+            d) DEBUG=true ;;
             h) show_help; exit 0 ;;
             *)
                 echo -e "${RED}Unknown option: -${c}${NC}"
@@ -86,6 +94,7 @@ while [[ $# -gt 0 ]]; do
         --clean) CLEAN=true; shift ;;
         --size)  SIZE=true; shift ;;
         --flash) FLASH=true; shift ;;
+        --debug) DEBUG=true; shift ;;
         --help)  show_help; exit 0 ;;
         -)
             shift
@@ -193,4 +202,18 @@ if [[ "$FLASH" == true ]]; then
     openocd -f "$HRD_PROBE" -c "init" -c "halt" \
         -c "program ${BIN_FILE} verify reset 0x08000000" -c "exit"
     echo -e "${GREEN}=== Flash successful ===${NC}"
+fi
+if [[ "$DEBUG" == true ]]; then
+    if [[ ! -f "$ELF_FILE" ]]; then
+        echo -e "${RED}ELF not found: ${ELF_FILE}${NC}"
+        exit 1
+    fi
+
+    echo -e "${YELLOW}=== Starting OpenOCD GDB Server ===${NC}"
+    echo -e "${GREEN}Connect your GDB with: target remote localhost:3333${NC}"
+    
+    # Запускаем OpenOCD без exit, чтобы сервер продолжал работать
+    openocd -f "$HRD_PROBE" \
+            -c "init" \
+            -c "reset halt"
 fi
